@@ -1,33 +1,32 @@
 import streamlit as st
-import pandas as pd
+from stravalib import Client
 
-# Create a DataFrame to store registered participants
-participants_df = pd.DataFrame(columns=['Name', 'Date'])
+def get_strava_activities(access_token):
+    client = Client(access_token=access_token)
+    activities = client.get_activities(limit=10)
+    distances = []
+    speeds = []
+    for activity in activities:
+        distances.append(activity.distance.num / 1000)  # Convert to kilometers
+        speeds.append(activity.average_speed.num * 3.6)  # Convert to km/h
+    return distances, speeds
 
-# Sample data for rides
-rides_data = [
-    {'Date': '2023-07-01', 'Location': 'Park A'},
-    {'Date': '2023-07-05', 'Location': 'Park B'},
-    {'Date': '2023-07-10', 'Location': 'Park C'}
-]
-rides_df = pd.DataFrame(rides_data)
+def calculate_statistics(distances, speeds):
+    total_distance = sum(distances)
+    average_speed = sum(speeds) / len(speeds)
+    return total_distance, average_speed
 
-# Streamlit application header
-st.title("Cycling Calendar and Registration")
+def main():
+    st.title("Strava Ride Statistics")
+    access_token = st.text_input("Enter your Strava access token:")
+    if access_token:
+        try:
+            distances, speeds = get_strava_activities(access_token)
+            total_distance, average_speed = calculate_statistics(distances, speeds)
+            st.write("Total Distance:", total_distance, "km")
+            st.write("Average Speed:", average_speed, "km/h")
+        except:
+            st.write("Error: Unable to fetch Strava activities. Please check your access token.")
 
-# Display the table of rides with registration button
-st.subheader("Upcoming Rides")
-for index, row in rides_df.iterrows():
-    ride_date = row['Date']
-    ride_location = row['Location']
-    register_button = st.button(f"Register for {ride_date} - {ride_location}")
-    
-    if register_button:
-        participant_name = st.text_input("Enter your name")
-        if participant_name:
-            participants_df = participants_df.append({'Name': participant_name, 'Date': ride_date}, ignore_index=True)
-            st.success(f"{participant_name} successfully registered for {ride_date} - {ride_location}")
-
-# Display registered participants
-st.subheader("Registered Participants")
-st.dataframe(participants_df)
+if __name__ == "__main__":
+    main()
